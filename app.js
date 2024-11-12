@@ -18,8 +18,14 @@ mongoose
   .catch((e) => {
     console.log(e);
   });
+
+  //Import the User Details
 require("./UserDetails");
 const User = mongoose.model("UserInfo");
+
+// Import the LeaveRequest model
+require("./LeaveRequest"); 
+const LeaveRequest = mongoose.model("LeaveRequest");
 
 app.get("/", (req, res) => {
   res.send({ status: "Started" });
@@ -129,6 +135,71 @@ app.post("/delete-user",async (req, res) => {
   
  }
 })
+// post /create-leave-request
+app.post("/create-leave-request", async (req, res) => {
+  const { token, type, time, date, reason, thoiGianVangMat } = req.body;
+
+  try {
+    const user = jwt.verify(token, JWT_SECRET);
+    const userEmail = user.email;
+
+    const newRequest = await LeaveRequest.create({
+      userEmail,
+      type,
+      time,
+      date,
+      reason,
+      thoiGianVangMat,
+      status: "Pending",
+    });
+
+    res.send({ status: "ok", data: newRequest });
+  } catch (error) {
+    res.send({ status: "error", data: error });
+  }
+});
+
+// get /get-leave-request
+app.get("/get-leave-requests", async (req, res) => {
+  const { token } = req.query; // Use query parameters for GET requests
+
+  try {
+    const user = jwt.verify(token, JWT_SECRET);
+    const userEmail = user.email;
+
+    const requests = await LeaveRequest.find({ userEmail });
+    res.send({ status: "ok", data: requests });
+  } catch (error) {
+    res.send({ status: "error", data: error });
+  }
+});
+
+// post /update-leave-request-status
+app.post("/update-leave-request-status", async (req, res) => {
+  const { requestId, status } = req.body;
+
+  try {
+    const updatedRequest = await LeaveRequest.findByIdAndUpdate(
+      requestId,
+      { status },
+      { new: true } // Return the updated document
+    );
+
+    res.send({ status: "ok", data: updatedRequest });
+  } catch (error) {
+    res.send({ status: "error", data: error });
+  }
+});
+
+// get /get-all-leave-requests
+app.get("/get-all-leave-requests", async (req, res) => {
+  try {
+    const requests = await LeaveRequest.find({});
+    res.send({ status: "ok", data: requests });
+  } catch (error) {
+    res.send({ status: "error", data: error });
+  }
+});
 
 
 
