@@ -38,7 +38,7 @@ app.post("/register", async (req, res) => {
   const oldUser = await User.findOne({ email: email });
 
   if (oldUser) {
-    return res.send({ data: "User already exists!!" });
+    return res.status(400).send({ data: "User already exists!!" });
   }
   const encryptedPassword = await bcrypt.hash(password, 10);
 
@@ -62,21 +62,22 @@ app.post("/login-user", async (req, res) => {
   const oldUser = await User.findOne({ email: email });
 
   if (!oldUser) {
-    return res.send({ data: "User doesn't exists!!" });
+    return res.send({status:"error", data: "User doesn't exists!!" }); //COnsistent status: "error"
   }
 
   if (await bcrypt.compare(password, oldUser.password)) {
     const token = jwt.sign({ email: oldUser.email }, JWT_SECRET);
     console.log(token);
-    if (res.status(201)) {
-      return res.send({
+      return res.status(200).send({
         status: "ok",
         data: token,
         userType: oldUser.userType,
       });
-    } else {
-      return res.send({ error: "error" });
-    }
+  
+  } 
+  // Crucial: Send a response for incorrect password. Use 401 Unauthorized
+  else {
+    return res.status(401).send({ status: "error", data: "Invalid Password"});
   }
 });
 
@@ -138,7 +139,9 @@ app.post("/delete-user",async (req, res) => {
 // post /create-leave-request
 app.post("/create-leave-request", async (req, res) => {
   const { token, type, time, date, reason, thoiGianVangMat } = req.body;
-
+  if(!token || !type || !date || !reason) {
+    return res.status(400).send({status: "error", data:"Missing required fields"});
+  }
   try {
     const user = jwt.verify(token, JWT_SECRET);
     const userEmail = user.email;
@@ -155,7 +158,7 @@ app.post("/create-leave-request", async (req, res) => {
 
     res.send({ status: "ok", data: newRequest });
   } catch (error) {
-    res.send({ status: "error", data: error });
+    res.status(500).send({ status: "error", data: error.message });
   }
 });
 
