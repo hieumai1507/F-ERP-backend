@@ -138,27 +138,32 @@ app.post("/delete-user",async (req, res) => {
 })
 // post /create-leave-request
 app.post("/create-leave-request", async (req, res) => {
-  const { token, type, time, date, reason, thoiGianVangMat } = req.body;
+  console.log("Request body:", req.body);
+  const { token, type, time, date, reason, thoiGianVangMat, timeOfDay } = req.body;
   if(!token || !type || !date || !reason) {
     return res.status(400).send({status: "error", data:"Missing required fields"});
   }
   try {
     const user = jwt.verify(token, JWT_SECRET);
     const userEmail = user.email;
-
+    //Log the data before saving
+    console.log("Creating request with data:", { /* ... data to be saved ...*/ })
     const newRequest = await LeaveRequest.create({
       userEmail,
       type,
-      time,
+      //store time as string if it's "Buổi sáng/ chiều/ Cả ngày"
+      time: type === 'Xin nghỉ' ? null : time,// only store time ì not "Xin nghỉ"
+      timeOfDay: type === 'Xin nghỉ' ? timeOfDay: null,//only store timeOfDay if 'Xin nghỉ'
       date,
       reason,
       thoiGianVangMat,
       status: "Pending",
     });
-
+    console.log("Request created successfully", newRequest);
     res.send({ status: "ok", data: newRequest });
   } catch (error) {
     res.status(500).send({ status: "error", data: error.message });
+    console.log("Error creating request", error);
   }
 });
 

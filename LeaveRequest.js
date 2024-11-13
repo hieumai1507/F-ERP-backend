@@ -4,6 +4,7 @@ const LeaveRequestSchema = new mongoose.Schema({
   userEmail: String,
   type: String,
   time: Date,
+  timeOfDay: String,
   date: Date,
   reason: String,
   thoiGianVangMat: String, // Add this field
