@@ -4,12 +4,14 @@ const mongoose = require("mongoose");
 app.use(express.json());
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const cors = require('cors');
+app.use(cors()); // turn on CORS
 
 const mongoUrl =
   "mongodb+srv://hieumai1507:Hieumai1507!@cluster0.she0k.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 
 const JWT_SECRET =
-  "hvdvay6ert72839289()aiyg8t87qt72393293883uhefiuh78ttq3ifi78272jdsds039[]]pou89ywe";
+  "EmHiuDemaciaCupKhongTheThuaConVoNao";
 mongoose
   .connect(mongoUrl)
   .then(() => {
@@ -122,6 +124,7 @@ app.get("/get-all-user", async (req, res) => {
     const data = await User.find({});
     res.send({ status: "Ok", data: data });
   } catch (error) {
+    console.error("Error fetching all users", error);
     return res.send({ error: error });
   }
 });
@@ -205,7 +208,8 @@ app.get("/get-all-leave-requests", async (req, res) => {
     const requests = await LeaveRequest.find({});
     res.send({ status: "ok", data: requests });
   } catch (error) {
-    res.send({ status: "error", data: error });
+    console.error("Error detching all leave requests: ", error);
+    res.status(500).send({ status: "error", data: "Error fetching leave requests" }); // Send a 500 error message
   }
 });
 
