@@ -6,6 +6,8 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const cors = require('cors');
 app.use(cors()); // turn on CORS
+const multer = require('multer');
+const upload = multer();
 
 const mongoUrl =
   "mongodb+srv://hieumai1507:Hieumai1507!@cluster0.she0k.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
@@ -73,6 +75,7 @@ app.post("/login-user", async (req, res) => {
       return res.status(200).send({
         status: "ok",
         data: token,
+        userData: oldUser, //Include all user objects
         userType: oldUser.userType,
       });
   
@@ -97,7 +100,7 @@ app.post("/userdata", async (req, res) => {
   }
 });
 
-app.post("/update-user", async (req, res) => {
+app.post("/update-user", upload.none(), async (req, res) => {
   const { name, email, mobile, image, gender, department } = req.body;
   console.log(req.body);
   try {
