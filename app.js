@@ -13,12 +13,13 @@ const mongoUrl =
   "mongodb+srv://hieumai1507:Hieumai1507!@cluster0.she0k.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 
 const JWT_SECRET =
-  "EmHiuDemaciaCupKhongTheThuaConVoNao";
+  "admin1234567890";
 mongoose
   .connect(mongoUrl)
   .then(() => {
     console.log("Database Connected");
   })
+
   .catch((e) => {
     console.log(e);
   });
@@ -70,7 +71,7 @@ app.post("/login-user", async (req, res) => {
   }
 
   if (await bcrypt.compare(password, oldUser.password)) {
-    const token = jwt.sign({ email: oldUser.email }, JWT_SECRET);
+    const token = jwt.sign({ email: oldUser.email }, JWT_SECRET, {expiresIn: '1h'});
     console.log(token);
       return res.status(200).send({
         status: "ok",
