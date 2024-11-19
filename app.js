@@ -101,25 +101,36 @@ app.post("/userdata", async (req, res) => {
   }
 });
 
-app.post("/update-user", upload.none(), async (req, res) => {
-  const { name, email, mobile, image, gender, department } = req.body;
-  console.log(req.body);
+app.post("/update-user", express.json({limit: "50mb"}), async (req, res) => { // use express.json
   try {
-    await User.updateOne(
+  const { name, email, mobile, image, gender, department } = req.body;
+  if (image) {
+    console.log("Image data received:", typeof image, image.length);
+  }
+  
+    const updatedUser = await User.findOneAndUpdate(
       { email: email },
       {
         $set: {
           name,
           mobile,
-          image,
+          image, //assign image data directly
           gender,
           department,
         },
-      }
+      },
+      {new: true} // To return the updated user document
     );
+    // condition if not found user
+    if(!updatedUser) {
+      return res.status(404).send({ status: "error", data: "User not found" });
+    }
+
     res.send({ status: "Ok", data: "Updated" });
   } catch (error) {
-    return res.send({ error: error });
+    console.error("Error updating user: ", error);
+
+    return res.status(500).send({ status: "error", data: error.message });
   }
 });
 
@@ -203,6 +214,16 @@ app.post("/update-leave-request-status", async (req, res) => {
     res.send({ status: "ok", data: updatedRequest });
   } catch (error) {
     res.send({ status: "error", data: error });
+  }
+});
+app.get("/get-leave-requests-by-email", async (req, res) => {
+  const { email } = req.query; // Get email from query parameters
+  try {
+    const requests = await LeaveRequest.find({ userEmail: email });
+    res.send({ status: "ok", data: requests });
+  } catch (error) {
+    console.error("Error fetching leave requests by email:", error);
+    res.status(500).send({ status: "error", data: error.message });
   }
 });
 
