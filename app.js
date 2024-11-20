@@ -101,12 +101,9 @@ app.post("/userdata", async (req, res) => {
   }
 });
 
-app.post("/update-user", express.json({limit: "50mb"}), async (req, res) => { // use express.json
+app.post("/update-user", express.json(), async (req, res) => { // use express.json
   try {
-  const { name, email, mobile, image, gender, department } = req.body;
-  if (image) {
-    console.log("Image data received:", typeof image, image.length);
-  }
+  const { name, mobile, gender, department, image, email } = req.body;
   
     const updatedUser = await User.findOneAndUpdate(
       { email: email },
@@ -126,11 +123,16 @@ app.post("/update-user", express.json({limit: "50mb"}), async (req, res) => { //
       return res.status(404).send({ status: "error", data: "User not found" });
     }
 
-    res.send({ status: "Ok", data: "Updated" });
+    res.send({ status: "Ok", data: updatedUser }); // gửi dữ liệu người dùng đã cập nhật
   } catch (error) {
-    console.error("Error updating user: ", error);
-
-    return res.status(500).send({ status: "error", data: error.message });
+    console.error("Error updating user:", error);
+    // More specific error handling (e.g., for database errors)
+    if (error.code === 11000) { // Duplicate key error (usually for email)
+      return res.status(400).send({ status: "error", data: "Duplicate email" });
+    } else if (error.name === 'ValidationError') {
+      return res.status(400).send({status: "error", data: error.message});
+    }
+    return res.status(500).send({ status: "error", data: "Internal server error" });
   }
 });
 
@@ -217,13 +219,23 @@ app.post("/update-leave-request-status", async (req, res) => {
   }
 });
 app.get("/get-leave-requests-by-email", async (req, res) => {
-  const { email } = req.query; // Get email from query parameters
+  const authHeader = req.headers.authorization;
+  if(!authHeader) {
+    return res.status(401).send({ status: "error", data: "No token provided"});
+  }
+  const token = authHeader.split(' ')[1];
   try {
-    const requests = await LeaveRequest.find({ userEmail: email });
+    const user = jwt.verify(token. JWT_SECRET);
+    const userEmail = user.email;
+    const requests = await LeaveRequest.find({ userEmail});
     res.send({ status: "ok", data: requests });
   } catch (error) {
     console.error("Error fetching leave requests by email:", error);
-    res.status(500).send({ status: "error", data: error.message });
+    if(error.name === 'JsonWebTokenError') {
+      res.status(401).send({ status: "error", data: "Invalid token. Please log in again"});
+    } else {
+      res.status(500).send({ status: "error", data: "Error fetching leave requests."});
+    }
   }
 });
 
