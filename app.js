@@ -219,23 +219,19 @@ app.post("/update-leave-request-status", async (req, res) => {
   }
 });
 app.get("/get-leave-requests-by-email", async (req, res) => {
-  const authHeader = req.headers.authorization;
-  if(!authHeader) {
-    return res.status(401).send({ status: "error", data: "No token provided"});
-  }
-  const token = authHeader.split(' ')[1];
   try {
-    const user = jwt.verify(token. JWT_SECRET);
-    const userEmail = user.email;
-    const requests = await LeaveRequest.find({ userEmail});
-    res.send({ status: "ok", data: requests });
-  } catch (error) {
-    console.error("Error fetching leave requests by email:", error);
-    if(error.name === 'JsonWebTokenError') {
-      res.status(401).send({ status: "error", data: "Invalid token. Please log in again"});
-    } else {
-      res.status(500).send({ status: "error", data: "Error fetching leave requests."});
+    const userEmailFromQuery = req.query.email; // Lấy email từ query parameter
+
+    if (!userEmailFromQuery) {
+      return res.status(400).send({ status: "error", data: "Email is required." });
     }
+
+    const requests = await LeaveRequest.find({ userEmail: userEmailFromQuery });
+    res.send({ status: "ok", data: requests });
+
+  } catch (error) {
+    console.error("Error fetching requests:", error);
+    res.status(500).send({ status: "error", data: "Error fetching leave requests." });
   }
 });
 
