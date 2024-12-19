@@ -4,16 +4,15 @@ const mongoose = require("mongoose");
 app.use(express.json());
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const cors = require('cors');
+const cors = require("cors");
 app.use(cors()); // turn on CORS
-const multer = require('multer');
+const multer = require("multer");
 const upload = multer();
 
 const mongoUrl =
   "mongodb+srv://hieumai1507:Hieumai1507!@cluster0.she0k.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 
-const JWT_SECRET =
-  "admin1234567890";
+const JWT_SECRET = "admin1234567890";
 mongoose
   .connect(mongoUrl)
   .then(() => {
@@ -24,12 +23,12 @@ mongoose
     console.log(e);
   });
 
-  //Import the User Details
-require("./UserDetails");
+//Import the User Details
+require("./models/UserDetails");
 const User = mongoose.model("UserInfo");
 
 // Import the LeaveRequest model
-require("./LeaveRequest"); 
+require("./models/LeaveRequest");
 const LeaveRequest = mongoose.model("LeaveRequest");
 
 app.get("/", (req, res) => {
@@ -43,7 +42,7 @@ app.post("/register", async (req, res) => {
   const oldUser = await User.findOne({ email: email });
 
   if (oldUser) {
-    return res.status(400).send({ data: "User already exists!!" });
+    return res.status(400).send({ data: "Invalid Email or Password!" });
   }
   const encryptedPassword = await bcrypt.hash(password, 10);
 
@@ -63,27 +62,27 @@ app.post("/register", async (req, res) => {
 
 app.post("/login-user", async (req, res) => {
   const { email, password } = req.body;
-  console.log(req.body);
   const oldUser = await User.findOne({ email: email });
 
   if (!oldUser) {
-    return res.send({status:"error", data: "User doesn't exists!!" }); //COnsistent status: "error"
+    return res.send({ status: "error", data: "User doesn't exists!!" }); //Consistent status: "error"
   }
 
   if (await bcrypt.compare(password, oldUser.password)) {
-    const token = jwt.sign({ email: oldUser.email }, JWT_SECRET, {expiresIn: '1h'});
+    const token = jwt.sign({ email: oldUser.email }, JWT_SECRET, {
+      expiresIn: "1h",
+    });
     console.log(token);
-      return res.status(200).send({
-        status: "ok",
-        data: token,
-        userData: oldUser, //Include all user objects
-        userType: oldUser.userType,
-      });
-  
-  } 
+    return res.status(200).send({
+      status: "ok",
+      data: token,
+      userData: oldUser, //Include all user objects
+      userType: oldUser.userType,
+    });
+  }
   // Crucial: Send a response for incorrect password. Use 401 Unauthorized
   else {
-    return res.status(401).send({ status: "error", data: "Invalid Password"});
+    return res.status(400).send({ status: "error", data: "Invalid Password" });
   }
 });
 
@@ -91,9 +90,9 @@ app.post("/userdata", async (req, res) => {
   const { token } = req.body;
   try {
     const user = jwt.verify(token, JWT_SECRET);
-    const useremail = user.email;
+    const userEmail = user.email;
 
-    User.findOne({ email: useremail }).then((data) => {
+    User.findOne({ email: userEmail }).then((data) => {
       return res.send({ status: "Ok", data: data });
     });
   } catch (error) {
@@ -101,10 +100,11 @@ app.post("/userdata", async (req, res) => {
   }
 });
 
-app.post("/update-user", express.json(), async (req, res) => { // use express.json
+app.post("/update-user", express.json(), async (req, res) => {
+  // use express.json
   try {
-  const { name, mobile, gender, department, image, email } = req.body;
-  
+    const { name, mobile, gender, department, image, email } = req.body;
+
     const updatedUser = await User.findOneAndUpdate(
       { email: email },
       {
@@ -116,10 +116,10 @@ app.post("/update-user", express.json(), async (req, res) => { // use express.js
           department,
         },
       },
-      {new: true} // To return the updated user document
+      { new: true } // To return the updated user document
     );
     // condition if not found user
-    if(!updatedUser) {
+    if (!updatedUser) {
       return res.status(404).send({ status: "error", data: "User not found" });
     }
 
@@ -127,12 +127,15 @@ app.post("/update-user", express.json(), async (req, res) => { // use express.js
   } catch (error) {
     console.error("Error updating user:", error);
     // More specific error handling (e.g., for database errors)
-    if (error.code === 11000) { // Duplicate key error (usually for email)
+    if (error.code === 11000) {
+      // Duplicate key error (usually for email)
       return res.status(400).send({ status: "error", data: "Duplicate email" });
-    } else if (error.name === 'ValidationError') {
-      return res.status(400).send({status: "error", data: error.message});
+    } else if (error.name === "ValidationError") {
+      return res.status(400).send({ status: "error", data: error.message });
     }
-    return res.status(500).send({ status: "error", data: "Internal server error" });
+    return res
+      .status(500)
+      .send({ status: "error", data: "Internal server error" });
   }
 });
 
@@ -146,34 +149,38 @@ app.get("/get-all-user", async (req, res) => {
   }
 });
 
-app.post("/delete-user",async (req, res) => {
- const {id}=req.body;
- try {
-  await User.deleteOne({_id:id});
-  res.send({status:"Ok",data:"User Deleted"});
- } catch (error) {
-  return res.send({ error: error });
-  
- }
-})
+app.post("/delete-user", async (req, res) => {
+  const { id } = req.body;
+  try {
+    await User.deleteOne({ _id: id });
+    res.send({ status: "Ok", data: "User Deleted" });
+  } catch (error) {
+    return res.send({ error: error });
+  }
+});
 // post /create-leave-request
 app.post("/create-leave-request", async (req, res) => {
   console.log("Request body:", req.body);
-  const { token, type, time, date, reason, thoiGianVangMat, timeOfDay } = req.body;
-  if(!token || !type || !date || !reason) {
-    return res.status(400).send({status: "error", data:"Missing required fields"});
+  const { token, type, time, date, reason, thoiGianVangMat, timeOfDay } =
+    req.body;
+  if (!token || !type || !date || !reason) {
+    return res
+      .status(400)
+      .send({ status: "error", data: "Missing required fields" });
   }
   try {
     const user = jwt.verify(token, JWT_SECRET);
     const userEmail = user.email;
     //Log the data before saving
-    console.log("Creating request with data:", { /* ... data to be saved ...*/ })
+    console.log("Creating request with data:", {
+      /* ... data to be saved ...*/
+    });
     const newRequest = await LeaveRequest.create({
       userEmail,
       type,
       //store time as string if it's "Buổi sáng/ chiều/ Cả ngày"
-      time: type === 'Xin nghỉ' ? null : time,// only store time ì not "Xin nghỉ"
-      timeOfDay: type === 'Xin nghỉ' ? timeOfDay: null,//only store timeOfDay if 'Xin nghỉ'
+      time: type === "Xin nghỉ" ? null : time, // only store time ì not "Xin nghỉ"
+      timeOfDay: type === "Xin nghỉ" ? timeOfDay : null, //only store timeOfDay if 'Xin nghỉ'
       date,
       reason,
       thoiGianVangMat,
@@ -223,15 +230,18 @@ app.get("/get-leave-requests-by-email", async (req, res) => {
     const userEmailFromQuery = req.query.email; // Lấy email từ query parameter
 
     if (!userEmailFromQuery) {
-      return res.status(400).send({ status: "error", data: "Email is required." });
+      return res
+        .status(400)
+        .send({ status: "error", data: "Email is required." });
     }
 
     const requests = await LeaveRequest.find({ userEmail: userEmailFromQuery });
     res.send({ status: "ok", data: requests });
-
   } catch (error) {
     console.error("Error fetching requests:", error);
-    res.status(500).send({ status: "error", data: "Error fetching leave requests." });
+    res
+      .status(500)
+      .send({ status: "error", data: "Error fetching leave requests." });
   }
 });
 
@@ -241,13 +251,13 @@ app.get("/get-all-leave-requests", async (req, res) => {
     const requests = await LeaveRequest.find({});
     res.send({ status: "ok", data: requests });
   } catch (error) {
-    console.error("Error detching all leave requests: ", error);
-    res.status(500).send({ status: "error", data: "Error fetching leave requests" }); // Send a 500 error message
+    console.error("Error fetching all leave requests: ", error);
+    res
+      .status(500)
+      .send({ status: "error", data: "Error fetching leave requests" }); // Send a 500 error message
   }
 });
 
-
-
 app.listen(5001, () => {
-  console.log("Node js server started.");
+  console.log("Node js server started at: ", 5001);
 });
